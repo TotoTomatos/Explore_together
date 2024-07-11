@@ -40,7 +40,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
 
     @Resource
-    private StringRedisTemplate stringRedisTemplate;
+    private RedisTemplate redisTemplate;
 
     @Override
     public Result sendCode(String phone, HttpSession session) {
@@ -52,7 +52,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         //TODO 发送验证码
         log.info("你的验证码为{}", checkCode);
         // 将验证码保存到redis
-        stringRedisTemplate.opsForValue().set(RedisConstants.LOGIN_CODE_KEY + phone, checkCode, RedisConstants.LOGIN_CODE_TTL, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(RedisConstants.LOGIN_CODE_KEY + phone, checkCode, RedisConstants.LOGIN_CODE_TTL, TimeUnit.MINUTES);
         return Result.ok();
     }
 
@@ -65,7 +65,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if (RegexUtils.isPhoneInvalid(phone)) {
             return Result.fail("手机号码格式不正确");
         }
-        String cacheCode = stringRedisTemplate.opsForValue().get(codeKey);
+        String cacheCode = redisTemplate.opsForValue().get(codeKey).toString();
         if (cacheCode == null || !cacheCode.equals(loginForm.getCode())) {
             return Result.fail("验证码错误");
         }
@@ -75,10 +75,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             user = createUserWithPhone(phone);
         }
         UserDTO userDto = BeanUtil.copyProperties(user, UserDTO.class);
-        Map<String, Object> userMap = BeanUtil.beanToMap(userDto, new HashMap<>(), CopyOptions.create()
-                .setIgnoreNullValue(true).setFieldValueEditor((fileName,fileValue)->fileValue.toString()));
-        stringRedisTemplate.opsForHash().putAll(tokenKey, userMap);
-        stringRedisTemplate.expire(tokenKey, RedisConstants.LOGIN_USER_TTL, TimeUnit.MINUTES);
+        Map<String, Object> userMap = BeanUtil.beanToMap(userDto);
+        redisTemplate.opsForHash().putAll(tokenKey, userMap);
+        redisTemplate.expire(tokenKey, RedisConstants.LOGIN_USER_TTL, TimeUnit.MINUTES);
         return Result.ok(token);
     }
 
