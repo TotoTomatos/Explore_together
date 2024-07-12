@@ -3,6 +3,7 @@ package com.hmdp.config;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -11,6 +12,7 @@ import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
+@EnableCaching
 public class RedisTemplateConfig {
 
 
@@ -29,8 +31,8 @@ public class RedisTemplateConfig {
             template.setKeySerializer(stringRedisSerializer);
             // hash的key也采用String的序列化方式
             template.setHashKeySerializer(stringRedisSerializer);
-            // value序列化方式采用jackson
-            template.setValueSerializer(jackson2JsonRedisSerializer);
+            // value序列化方式采用string
+            template.setValueSerializer(stringRedisSerializer);
             // hash的value序列化方式采用jackson
             template.setHashValueSerializer(jackson2JsonRedisSerializer);
             template.afterPropertiesSet();
