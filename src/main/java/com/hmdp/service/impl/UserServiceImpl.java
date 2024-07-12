@@ -69,7 +69,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if (cacheCode == null || !cacheCode.equals(loginForm.getCode())) {
             return Result.fail("验证码错误");
         }
-
         User user = super.query().eq("phone", phone).one();
         if (user == null) {
             user = createUserWithPhone(phone);
