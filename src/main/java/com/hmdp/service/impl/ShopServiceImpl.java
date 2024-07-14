@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
- *  服务实现类
+ * 服务实现类
  * </p>
  *
  * @author 虎哥
@@ -33,14 +33,18 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     @Override
     public Result queryById(Long id) {
         String key = RedisConstants.CACHE_SHOP_KEY + id;
-        String shopJson = (String)redisTemplate.opsForValue().get(key);
+        String shopJson = (String) redisTemplate.opsForValue().get(key);
         Shop shop = null;
-        if(StrUtil.isNotBlank(shopJson)){
+        if (StrUtil.isNotBlank(shopJson)) {
             shop = JSONUtil.toBean(shopJson.toString(), Shop.class);
             return Result.ok(shop);
         }
+        if (shopJson != null) {
+            return Result.fail("商品不存在");
+        }
         shop = getById(id);
-        if(shop == null){
+        if (shop == null) {
+            redisTemplate.opsForValue().set(key,"",RedisConstants.CACHE_NULL_TTL,TimeUnit.MINUTES);
             return Result.fail("商品不存在");
         }
         String jsonStr = JSONUtil.toJsonStr(shop);
@@ -51,7 +55,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     @Override
     @Transactional
     public Result update(Shop shop) {
-        if(shop.getId() == null){
+        if (shop.getId() == null) {
             return Result.fail("商品id不能为空");
         }
         updateById(shop);
