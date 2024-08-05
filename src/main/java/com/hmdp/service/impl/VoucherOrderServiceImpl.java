@@ -2,12 +2,14 @@ package com.hmdp.service.impl;
 
 import com.hmdp.dto.Result;
 import com.hmdp.entity.SeckillVoucher;
+import com.hmdp.entity.SimpleRedisLock;
 import com.hmdp.entity.VoucherOrder;
 import com.hmdp.mapper.VoucherOrderMapper;
 import com.hmdp.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.RedisWorker;
 import com.hmdp.utils.UserHolder;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,8 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     private SeckillVoucherServiceImpl seckillVoucherService;
 
 
+    @Resource
+    private RedisTemplate redisTemplate;
     
     @Resource
     private RedisWorker redisWorker;
@@ -53,9 +57,22 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
         Long userId = UserHolder.getUser().getId();
 
-        synchronized (userId) {
-            return createVoucherOrder(voucherId, userId);
+        //获取锁对象
+        SimpleRedisLock lock = new SimpleRedisLock(redisTemplate, "order" + userId);
+        //获取锁
+        boolean isLock = lock.tryLock(1200L);
+        if(!isLock){
+            //获取锁失败，返回或者错误重试
+            return Result.fail("不允许重复下单");
         }
+
+
+        try {
+            return createVoucherOrder(voucherId, userId);
+        } finally {
+            lock.unlock();
+        }
+
     }
 
     @Transactional

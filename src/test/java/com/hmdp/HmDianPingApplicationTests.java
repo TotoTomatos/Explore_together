@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.ReentrantLock;
 
 @SpringBootTest
 class HmDianPingApplicationTests {
@@ -43,5 +44,10 @@ class HmDianPingApplicationTests {
         countDownLatch.await();
         long end = System.currentTimeMillis();
         System.out.println("耗时：" + (end - begin) + "ms");
+    }
+
+    public void test3(){
+        ReentrantLock l = new ReentrantLock();
+        l.lock();
     }
 }
