@@ -2,10 +2,11 @@ package com.hmdp.entity;
 
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.BooleanUtil;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Component;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 
-import javax.annotation.Resource;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 
@@ -24,6 +25,13 @@ public class SimpleRedisLock implements ILock{
 
     private static final String KEY_PREFIX = "lock:";
     private static final String ID_PREFIX = UUID.randomUUID().toString(true)+"_";
+    private static final DefaultRedisScript<Boolean> UNLOCK_SCRIPT;
+
+    static {
+        String format = String.format("if (redis.call('get', KEYS[1]) == ARGV[1]) then\n    redis.call('del', KEYS[1])\n    return 1\nend\nreturn 0");
+        UNLOCK_SCRIPT = new DefaultRedisScript<>(format,Boolean.class);
+//        UNLOCK_SCRIPT.setLocation(new ClassPathResource("unlock.lua"));
+    }
     @Override
     public boolean tryLock(Long timeSec) {
         //获取线程标示
@@ -35,12 +43,8 @@ public class SimpleRedisLock implements ILock{
 
     @Override
     public void unlock() {
-        String ThreadId = ID_PREFIX + Thread.currentThread().getId();
-        String id = (String) redisTemplate.opsForValue().get(KEY_PREFIX + name);
-
-        if(ThreadId.equals(id)){
-            redisTemplate.delete(KEY_PREFIX+name);
-        }
-
+        redisTemplate.execute(UNLOCK_SCRIPT,
+                Arrays.asList(KEY_PREFIX+name),
+                ID_PREFIX + Thread.currentThread().getId());
     }
 }
